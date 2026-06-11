@@ -1,3 +1,12 @@
+# [1.4.0](https://github.com/Coding4Hours/caelum/compare/v1.3.1...v1.4.0) (2026-06-11)
+
+
+### Features
+
+* update everything ([58a6d68](https://github.com/Coding4Hours/caelum/commit/58a6d68ebec3e0a5f75d664267e67f91299fe0d8))
+
+
+
 ## [1.3.1](https://github.com/Coding4Hours/caelum/compare/v1.3.0...v1.3.1) (2026-06-11)
 
 
