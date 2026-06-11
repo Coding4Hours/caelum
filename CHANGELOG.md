@@ -1,3 +1,12 @@
+## [1.3.1](https://github.com/Coding4Hours/caelum/compare/v1.3.0...v1.3.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ci:** publish ([66dcac5](https://github.com/Coding4Hours/caelum/commit/66dcac5cb1daa727c42854b0af53a8fcbf620e35))
+
+
+
 # [1.3.0](https://github.com/Coding4Hours/caelum/compare/v1.2.0...v1.3.0) (2026-06-11)
 
 
