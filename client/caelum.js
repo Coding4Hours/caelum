@@ -1,3 +1,10 @@
+const PKG = {
+  scramjet: "/scramjet",
+  controller: "/controller",
+  epoxy: "/epoxy",
+  libcurl: "/libcurl",
+};
+
 const currentScript = document.currentScript;
 
 window.caelum = {
@@ -24,11 +31,102 @@ window.caelum = {
           "/wisp/",
 };
 
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = url;
+    script.onload = () => resolve();
+    script.onerror = () => reject(Error("Failed to load: " + url));
+    document.head.appendChild(script);
+  });
+}
+
+async function registerSW() {
+  if (!("serviceWorker" in navigator)) {
+    throw Error("Service worker not supported");
+  }
+  const r = await navigator.serviceWorker.register("/caelum.sw.js", {
+    type: "classic",
+    updateViaCache: "none",
+  });
+  await navigator.serviceWorker.ready;
+  if (r.active) return r.active;
+  if (r.installing) {
+    await new Promise((resolve) => {
+      const sw = r.installing;
+      if (sw.state === "activated") resolve();
+      else
+        sw.addEventListener("statechange", function onChange() {
+          if (sw.state === "activated") {
+            sw.removeEventListener("statechange", onChange);
+            resolve();
+          }
+        });
+    });
+    return r.active;
+  }
+  if (r.waiting) {
+    await new Promise((resolve) =>
+      navigator.serviceWorker.addEventListener("controllerchange", resolve, {
+        once: true,
+      })
+    );
+    return navigator.serviceWorker.controller;
+  }
+  throw Error("No service worker found");
+}
+
+let controller;
+
+async function ensureInit() {
+  if (controller) return;
+  const sw = await registerSW();
+  if (scramjetEnabled) {
+    await loadScript(PKG.scramjet + "/scramjet.js");
+    await loadScript(PKG.controller + "/controller.api.js");
+    const transportScript =
+      window.caelum.transport === "epoxy"
+        ? PKG.epoxy + "/index.js"
+        : PKG.libcurl + "/index.js";
+    await loadScript(transportScript);
+    const resolvedWisp =
+      window.caelum.wisp.startsWith("ws") ||
+      window.caelum.wisp.startsWith("http")
+        ? window.caelum.wisp
+        : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${window.caelum.wisp.startsWith("/") ? "" : "/"}${window.caelum.wisp}`;
+    const transport =
+      window.caelum.transport === "epoxy"
+        ? new window.EpoxyTransport.EpoxyClient({ wisp: resolvedWisp })
+        : new window.LibcurlTransport.LibcurlClient({ wisp: resolvedWisp });
+    const { Controller, config } = window.$scramjetController;
+    config.injectPath = PKG.controller + "/controller.inject.js";
+    config.wasmPath = PKG.scramjet + "/scramjet.wasm";
+    config.scramjetPath = PKG.scramjet + "/scramjet.js";
+    controller = new Controller({ serviceworker: sw, transport });
+    await controller.wait();
+    window.caelum.scramjet = controller;
+    window.caelum.scramjet.encodeUrl = (url) => {
+      const ctx = {
+        config: controller.scramjetConfig,
+        prefix: new URL(controller.prefix + "x/", location.href),
+        interface: {
+          codecEncode: controller.config.codec.encode,
+          codecDecode: controller.config.codec.decode,
+        },
+      };
+      return $scramjet.rewriteUrl(url, ctx, {
+        origin: new URL(location.href),
+        base: new URL(location.href),
+      });
+    };
+  }
+}
+
 async function encodeService(url, service) {
   switch (service) {
     case "scramjet":
-      if (scramjetEnabled) {
-        return window.location.origin + caelum.scramjet.encodeUrl(url);
+      if (scramjetEnabled && window.caelum.scramjet) {
+        return window.location.origin + window.caelum.scramjet.encodeUrl(url);
       }
       break;
   }
@@ -81,8 +179,10 @@ window.caelum.decode = async function (url, config) {
 
   switch (config.service) {
     case "scramjet":
-      if (scramjetEnabled) {
-        return $scramjet.codec.decode(url.split($scramjet.config.prefix)[1]);
+      if (scramjetEnabled && controller) {
+        return controller.config.codec.decode(
+          url.split(controller.prefix)[1]
+        );
       }
       break;
   }
@@ -153,34 +253,25 @@ window.caelum.getStore = function (key) {
   return value || defaults[key];
 };
 
-function getTransport(transport) {
-  switch (transport) {
-    default:
-    case "libcurl":
-      return "/libcurl/index.mjs";
-      break;
-    case "epoxy":
-      return "/epoxy/index.mjs";
-      break;
-  }
-}
-
 window.caelum.setTransport = async function (newTransport) {
   newTransport = newTransport || currentScript.dataset.transport || "libcurl";
   window.caelum.transport = newTransport;
-  if (window.caelum.connection) {
-    await window.caelum.connection.setTransport(getTransport(newTransport), [
-      { wisp: window.caelum.wisp },
-    ]);
-  }
-  if (window.caelum.scramjet) {
-    const resolvedWisp = window.caelum.wisp.startsWith("ws") || window.caelum.wisp.startsWith("http")
-      ? window.caelum.wisp
-      : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${window.caelum.wisp.startsWith("/") ? "" : "/"}${window.caelum.wisp}`;
-    const transport = newTransport === "epoxy"
-      ? new window.EpoxyTransport.EpoxyClient({ wisp: resolvedWisp })
-      : new window.LibcurlTransport.LibcurlClient({ wisp: resolvedWisp });
-    window.caelum.scramjet.setTransport(transport);
+  if (controller) {
+    const resolvedWisp =
+      window.caelum.wisp.startsWith("ws") ||
+      window.caelum.wisp.startsWith("http")
+        ? window.caelum.wisp
+        : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${window.caelum.wisp.startsWith("/") ? "" : "/"}${window.caelum.wisp}`;
+    const transportScript =
+      newTransport === "epoxy"
+        ? PKG.epoxy + "/index.js"
+        : PKG.libcurl + "/index.js";
+    await loadScript(transportScript);
+    const t =
+      newTransport === "epoxy"
+        ? new window.EpoxyTransport.EpoxyClient({ wisp: resolvedWisp })
+        : new window.LibcurlTransport.LibcurlClient({ wisp: resolvedWisp });
+    controller.setTransport(t);
   }
 };
 
@@ -193,122 +284,47 @@ window.caelum.setWisp = async function (wisp) {
       location.host +
       "/wisp/";
   window.caelum.wisp = wisp;
-  if (window.caelum.connection) {
-    await window.caelum.connection.setTransport(
-      getTransport(window.caelum.transport),
-      [{ wisp: wisp }]
-    );
-  }
-  if (window.caelum.scramjet) {
-    const transportType = window.caelum.transport === "epoxy"
-      ? new window.EpoxyTransport.EpoxyClient({ wisp })
-      : new window.LibcurlTransport.LibcurlClient({ wisp });
-    window.caelum.scramjet.setTransport(transportType);
+  if (controller) {
+    const transportType =
+      window.caelum.transport === "epoxy"
+        ? new window.EpoxyTransport.EpoxyClient({ wisp })
+        : new window.LibcurlTransport.LibcurlClient({ wisp });
+    controller.setTransport(transportType);
   }
 };
 
-async function registerSW() {
-  if ("serviceWorker" in navigator) {
-    await navigator.serviceWorker.register("/caelum.sw.js");
-  } else {
-    console.error("Service worker failed to register.");
+window.caelum.getSuggestions = async function (query) {
+  if (!query) {
+    return [];
   }
-}
 
-async function loadScript(src) {
-  await new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = () => {
-      resolve();
-    };
-    script.onerror = () => {
-      reject();
-    };
-    document.head.appendChild(script);
-  });
-}
+  try {
+    const response = await fetch(
+      "https://duckduckgo.com/ac/?q=" +
+        encodeURIComponent(query) +
+        "&type=list"
+    );
+    const suggestions = await response.json();
+    return suggestions[1].slice(0, 9);
+  } catch {
+    return [];
+  }
+};
 
-function setupFetch() {
-  const client = new window.BareMux.BareClient();
-  window.caelum.fetch = client.fetch.bind(client);
-
-  window.caelum.getSuggestions = async function (query) {
-    if (!query) {
-      return [];
-    }
-
-    try {
-      const DDGSuggestions = await window.caelum.fetch(
-        "https://duckduckgo.com/ac/?q=" + query + "&type=list"
-      );
-      const suggestions = await DDGSuggestions.json();
-      return suggestions[1].slice(0, 9);
-    } catch {
-      return [];
-    }
-  };
-
-  window.caelum.createDataURL = async function (url) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const response = await window.caelum.fetch(url);
-        const blob = await response.blob();
-        const reader = new FileReader();
-
-        reader.onloadend = function () {
-          resolve(reader.result);
-        };
-
-        reader.readAsDataURL(blob);
-      } catch {
-        resolve(undefined);
-      }
+window.caelum.createDataURL = async function (url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
     });
-  };
-}
+  } catch {
+    return undefined;
+  }
+};
 
-await loadScript("/baremux/index.js");
-
-if (scramjetEnabled) {
-  await loadScript("/scramjet/scramjet.js");
-  await loadScript("/scramjet/controller.api.js");
-}
-
-await registerSW();
-
-if (scramjetEnabled) {
-  const transportType = caelum.transport === "epoxy" ? "EpoxyClient" : "LibcurlClient";
-  const transportModule = transportType === "EpoxyClient" ? window.EpoxyTransport : window.LibcurlTransport;
-  const transport = new transportModule[transportType]({ wisp: caelum.wisp });
-
-  const { Controller, config } = window.$scramjetController;
-  config.injectPath = "/scramjet/controller.inject.js";
-  config.wasmPath = "/scramjet/scramjet.wasm";
-  config.scramjetPath = "/scramjet/scramjet.js";
-
-  const sw = await navigator.serviceWorker.ready;
-  caelum.scramjet = new Controller({ serviceworker: sw, transport });
-  await caelum.scramjet.wait();
-  caelum.scramjet.encodeUrl = (url) => {
-    const ctx = {
-      config: caelum.scramjet.scramjetConfig,
-      prefix: new URL(caelum.scramjet.prefix + "x/", location.href),
-      interface: {
-        codecEncode: caelum.scramjet.config.codec.encode,
-        codecDecode: caelum.scramjet.config.codec.decode,
-      },
-    };
-    return $scramjet.rewriteUrl(url, ctx, {
-      origin: new URL(location.href),
-      base: new URL(location.href),
-    });
-  };
-}
-
-window.caelum.connection = new window.BareMux.BareMuxConnection(
-  "/baremux/worker.js"
-);
-setupFetch();
+await ensureInit();
 window.caelum.loaded = true;
 window.dispatchEvent(new Event("caelumLoaded"));

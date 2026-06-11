@@ -9,6 +9,7 @@ import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
 import type { ViteDevServer } from "vite";
 import { services } from "./proxys";
+import { controllerDist, epoxyDist, libcurlDist } from "./scramjet";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 
@@ -100,6 +101,9 @@ const CaelumVitePlugin = (options: Options) => ({
         }
       }
     }
+    app.use("/controller/", express.static(controllerDist));
+    app.use("/epoxy/", express.static(epoxyDist));
+    app.use("/libcurl/", express.static(libcurlDist));
     server.middlewares.use(app);
 
     const upgraders = server.httpServer?.listeners("upgrade") as ((

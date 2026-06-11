@@ -1,5 +1,5 @@
 if (scramjetEnabled) {
-  importScripts("/scramjet/controller.sw.js");
+  importScripts("/controller/controller.sw.js");
 }
 
 if (navigator.userAgent.includes("Firefox")) {

@@ -9,6 +9,7 @@ import express, {
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
 import { services } from "./proxys";
+import { controllerDist, epoxyDist, libcurlDist } from "./scramjet";
 import { CaelumVitePlugin } from "./vite-plugin";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -116,6 +117,9 @@ class CaelumServer {
         }
       }
     }
+    this.app.use("/controller/", express.static(controllerDist));
+    this.app.use("/epoxy/", express.static(epoxyDist));
+    this.app.use("/libcurl/", express.static(libcurlDist));
     this.server.on("request", (req: Request, res: Response) => {
       this.app(req, res);
     });
@@ -251,6 +255,9 @@ class CaelumBuild {
         }
       }
     }
+    await Bun.$`cp -r ${controllerDist} ${absDest}/controller`;
+    await Bun.$`cp -r ${epoxyDist} ${absDest}/epoxy`;
+    await Bun.$`cp -r ${libcurlDist} ${absDest}/libcurl`;
   }
 }
 
