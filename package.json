@@ -1,6 +1,6 @@
 {
-  "name": "caelumjs",
-  "version": "1.0.0",
+  "name": "@coding4hours/caelumjs",
+  "version": "1.0.1",
   "description": "Easily create your own web proxy with no experience required.",
   "type": "module",
   "module": "./dist/index.js",
