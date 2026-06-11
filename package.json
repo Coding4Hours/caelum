@@ -12,7 +12,7 @@
   "author": "Coding4hours",
   "license": "MIT",
   "scripts": {
-    "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build": "bun build ./src/index.ts --outdir=./dist --format=esm --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist",
     "prepack": "bun run build"
   },
   "dependencies": {

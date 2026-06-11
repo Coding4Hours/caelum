@@ -43,7 +43,7 @@ class CaelumServer {
     this.options = options;
     this.server = createServer();
     this.app = express();
-    this.app.serveCaelum = this.serveCaelum;
+    (this.app as any).serveCaelum = this.serveCaelum;
   }
   [Symbol.iterator](): Iterator<Application | Function> {
     return [this.app, this.listen][Symbol.iterator]();
