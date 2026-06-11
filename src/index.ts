@@ -1,6 +1,10 @@
-import { createServer } from "http";
-import type { Socket } from "net";
-import express, { type Request, type Response, type application } from "express";
+import { createServer } from "node:http";
+import type { Socket } from "node:net";
+import express, {
+  type Request,
+  type Response,
+  type application,
+} from "express";
 //@ts-ignore
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
