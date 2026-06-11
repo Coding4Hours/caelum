@@ -19,7 +19,7 @@
   "author": "Nebelung",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=node --sourcemap=linked && bun build ./src/index.ts --outfile=./dist/index.cjs --format=cjs --target=node --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
+    "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=bun --sourcemap=linked && bun build ./src/index.ts --outfile=./dist/index.cjs --format=cjs --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
     "prepack": "bun run build"
   },
   "dependencies": {

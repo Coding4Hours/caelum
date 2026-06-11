@@ -1,17 +1,6 @@
-import { resolve } from "node:path";
-import {
-  readFileSync,
-  cpSync,
-  writeFileSync,
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  rmSync,
-  readdirSync,
-} from "node:fs";
-import { createServer } from "node:http";
-import { Socket } from "node:net";
-import express, { Request, Response, application } from "express";
+import { createServer } from "http";
+import type { Socket } from "net";
+import express, { type Request, type Response, type application } from "express";
 //@ts-ignore
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
@@ -20,6 +9,8 @@ import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { ViteDevServer } from "vite";
 import { services } from "./proxys";
+
+const ROOT = new URL("..", import.meta.url).pathname;
 
 logging.set_level(logging.ERROR);
 
@@ -54,10 +45,7 @@ class ChemicalServer {
   }
   serveChemical = () => {
     this.app.get("/chemical.js", async (req: Request, res: Response) => {
-      let chemicalMain = await readFileSync(
-        resolve(__dirname, "../client/chemical.js"),
-        "utf8",
-      );
+      let chemicalMain = await Bun.file(ROOT + "client/chemical.js").text();
 
       if (this.options.default) {
         const serviceNames = services.map((s) => s.name);
@@ -97,10 +85,7 @@ class ChemicalServer {
       return res.send(chemicalMain);
     });
     this.app.get("/chemical.sw.js", async (req: Request, res: Response) => {
-      let chemicalSW = await readFileSync(
-        resolve(__dirname, "../client/chemical.sw.js"),
-        "utf8",
-      );
+      let chemicalSW = await Bun.file(ROOT + "client/chemical.sw.js").text();
 
       for (const service of services) {
         chemicalSW =
@@ -115,7 +100,7 @@ class ChemicalServer {
       res.type("application/javascript");
       return res.send(chemicalSW);
     });
-    this.app.use(express.static(resolve(__dirname, "../client")));
+    this.app.use(express.static(ROOT + "client"));
     this.app.use("/baremux/", express.static(baremuxPath));
     this.app.use("/libcurl/", express.static(libcurlPath));
     this.app.use("/epoxy/", express.static(epoxyPath));
@@ -170,10 +155,7 @@ const ChemicalVitePlugin = (options: Options) => ({
 
     const app: application = express();
     app.get("/chemical.js", async function (req: Request, res: Response) {
-      let chemicalMain: string = await readFileSync(
-        resolve(__dirname, "../client/chemical.js"),
-        "utf8",
-      );
+      let chemicalMain: string = await Bun.file(ROOT + "client/chemical.js").text();
 
       if (options.default) {
         const serviceNames = services.map((s) => s.name);
@@ -209,10 +191,7 @@ const ChemicalVitePlugin = (options: Options) => ({
       return res.send(chemicalMain);
     });
     app.get("/chemical.sw.js", async function (req: Request, res: Response) {
-      let chemicalSW: string = await readFileSync(
-        resolve(__dirname, "../client/chemical.sw.js"),
-        "utf8",
-      );
+      let chemicalSW: string = await Bun.file(ROOT + "client/chemical.sw.js").text();
 
       for (const service of services) {
         chemicalSW =
@@ -227,7 +206,7 @@ const ChemicalVitePlugin = (options: Options) => ({
       res.type("application/javascript");
       return res.send(chemicalSW);
     });
-    app.use(express.static(resolve(__dirname, "../client")));
+    app.use(express.static(ROOT + "client"));
     app.use("/baremux/", express.static(baremuxPath));
     app.use("/libcurl/", express.static(libcurlPath));
     app.use("/epoxy/", express.static(epoxyPath));
@@ -303,20 +282,19 @@ class ChemicalBuild {
     this.options = options;
   }
   async write(deletePath: boolean = false) {
-    if (!existsSync(resolve(this.options.path || ""))) {
-      mkdirSync(resolve(this.options.path || ""), { recursive: true });
-    } else {
-      if (deletePath) {
-        readdirSync(resolve(this.options.path || "")).forEach((file) =>
-          rmSync(resolve(this.options.path || "", file), { recursive: true }),
-        );
-      }
+    const dest = this.options.path || "";
+    const absDest = dest.startsWith("/") ? dest : `${process.cwd()}/${dest}`;
+
+    if (!(await Bun.file(absDest).exists())) {
+      await Bun.$`mkdir -p ${absDest}`;
+    } else if (deletePath) {
+      await Bun.$`rm -rf ${absDest}`;
+      await Bun.$`mkdir -p ${absDest}`;
     }
 
-    let chemicalMain: string = await readFileSync(
-      resolve(__dirname, "../client/chemical.js"),
-      "utf8",
-    );
+    let chemicalMain: string = await Bun.file(
+      ROOT + "client/chemical.js",
+    ).text();
 
     if (this.options.default) {
       const serviceNames = services.map((s) => s.name);
@@ -352,15 +330,11 @@ class ChemicalBuild {
 
     chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
 
-    writeFileSync(
-      resolve(this.options.path || "", "chemical.js"),
-      chemicalMain,
-    );
+    await Bun.write(`${absDest}/chemical.js`, chemicalMain);
 
-    let chemicalSW: string = await readFileSync(
-      resolve(__dirname, "../client/chemical.sw.js"),
-      "utf8",
-    );
+    let chemicalSW: string = await Bun.file(
+      ROOT + "client/chemical.sw.js",
+    ).text();
 
     for (const service of services) {
       chemicalSW =
@@ -372,37 +346,22 @@ class ChemicalBuild {
         chemicalSW;
     }
 
-    writeFileSync(
-      resolve(this.options.path || "", "chemical.sw.js"),
-      chemicalSW,
-    );
+    await Bun.write(`${absDest}/chemical.sw.js`, chemicalSW);
 
     if (this.options.demoMode) {
-      copyFileSync(
-        resolve(__dirname, "client/chemical.demo.html"),
-        resolve(this.options.path || "", "chemical.demo.html"),
+      await Bun.write(
+        `${absDest}/chemical.demo.html`,
+        Bun.file(ROOT + "client/chemical.demo.html"),
       );
     }
 
-    cpSync(baremuxPath, resolve(this.options.path || "", "baremux"), {
-      recursive: true,
-    });
-    cpSync(libcurlPath, resolve(this.options.path || "", "libcurl"), {
-      recursive: true,
-    });
-    cpSync(epoxyPath, resolve(this.options.path || "", "epoxy"), {
-      recursive: true,
-    });
-    cpSync(libcurlPath, resolve(this.options.path || "", "libcurl"), {
-      recursive: true,
-    });
+    await Bun.$`cp -r ${baremuxPath} ${absDest}/baremux`;
+    await Bun.$`cp -r ${libcurlPath} ${absDest}/libcurl`;
+    await Bun.$`cp -r ${epoxyPath} ${absDest}/epoxy`;
+    await Bun.$`cp -r ${libcurlPath} ${absDest}/libcurl`;
     for (const service of services) {
       if (this.options[service.name] && service.nodePath) {
-        cpSync(
-          service.nodePath,
-          resolve(this.options.path || "", service.name),
-          { recursive: true },
-        );
+        await Bun.$`cp -r ${service.nodePath} ${absDest}/${service.name}`;
       }
     }
   }

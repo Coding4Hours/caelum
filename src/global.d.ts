@@ -32,7 +32,7 @@ interface BuildOptions extends Options {
 
 interface ChemicalServer {
   options: Options;
-  server: import("node:http").Server;
+  server: import("http").Server;
   app: import("express").application;
 }
 
