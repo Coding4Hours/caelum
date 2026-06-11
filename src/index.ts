@@ -9,7 +9,7 @@ import {
   rmSync,
   readdirSync,
 } from "node:fs";
-import { createServer, Server } from "node:http";
+import { createServer } from "node:http";
 import { Socket } from "node:net";
 import express, { Request, Response, application } from "express";
 //@ts-ignore
@@ -18,52 +18,10 @@ import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
-import { scramjetPath } from "@mercuryworkshop/scramjet/path";
 import { ViteDevServer } from "vite";
+import { services } from "./proxys";
 
 logging.set_level(logging.ERROR);
-
-interface WispOptions {
-  hostname_blacklist?: Array<RegExp>;
-  hostname_whitelist?: Array<RegExp>;
-  port_blacklist?: (number | Array<number>)[];
-  port_whitelist?: (number | Array<number>)[];
-  allow_direct_ip?: boolean;
-  allow_private_ips?: boolean;
-  allow_loopback_ips?: boolean;
-  stream_limit_per_host?: number;
-  stream_limit_total?: number;
-  allow_udp_streams?: boolean;
-  allow_tcp_streams?: boolean;
-  dns_ttl?: number;
-  dns_method?: "lookup" | "resolve";
-  dns_servers?: Array<string>;
-  dns_result_order?: "ipv4first" | "ipv6first" | "verbatim";
-  parse_real_ip?: boolean;
-  parse_real_ip_from?: Array<string>;
-}
-
-interface Options {
-  gv?: boolean;
-  scramjet?: boolean;
-  demoMode?: boolean;
-  default?: string;
-  wispOptions?: WispOptions;
-}
-
-interface BuildOptions extends Options {
-  path?: string;
-}
-
-interface ChemicalServer {
-  options: Options;
-  server: Server;
-  app: application;
-}
-
-interface ChemicalBuild {
-  options: BuildOptions;
-}
 
 class ChemicalServer {
   constructor(options: Options = {}) {
@@ -76,8 +34,10 @@ class ChemicalServer {
       options = {};
     }
 
-    if (options.scramjet === undefined) {
-      options.scramjet = true;
+    for (const service of services) {
+      if (options[service.name] === undefined) {
+        options[service.name] = true;
+      }
     }
 
     if (options.demoMode === undefined) {
@@ -100,23 +60,31 @@ class ChemicalServer {
       );
 
       if (this.options.default) {
-        if (this.options.default === "scramjet") {
+        const serviceNames = services.map((s) => s.name);
+        if (serviceNames.includes(this.options.default)) {
           chemicalMain =
             `const defaultService = "${this.options.default}";\n\n` +
             chemicalMain;
         } else {
-          chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+          chemicalMain =
+            `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
+            chemicalMain;
           console.error("Error: Chemical default option invalid.");
         }
       } else {
         chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
       }
 
-      chemicalMain =
-        "const scramjetEnabled = " +
-        String(this.options.scramjet) +
-        ";\n" +
-        chemicalMain;
+      for (const service of services) {
+        chemicalMain =
+          "const " +
+          service.name +
+          "Enabled = " +
+          String(this.options[service.name]) +
+          ";\n" +
+          chemicalMain;
+      }
+
       chemicalMain =
         "const demoMode = " +
         String(this.options.demoMode) +
@@ -134,11 +102,15 @@ class ChemicalServer {
         "utf8",
       );
 
-      chemicalSW =
-        "const scramjetEnabled = " +
-        String(this.options.scramjet) +
-        ";\n" +
-        chemicalSW;
+      for (const service of services) {
+        chemicalSW =
+          "const " +
+          service.name +
+          "Enabled = " +
+          String(this.options[service.name]) +
+          ";\n" +
+          chemicalSW;
+      }
 
       res.type("application/javascript");
       return res.send(chemicalSW);
@@ -147,8 +119,10 @@ class ChemicalServer {
     this.app.use("/baremux/", express.static(baremuxPath));
     this.app.use("/libcurl/", express.static(libcurlPath));
     this.app.use("/epoxy/", express.static(epoxyPath));
-    if (this.options.scramjet) {
-      this.app.use("/scramjet/", express.static(scramjetPath));
+    for (const service of services) {
+      if (this.options[service.name] && service.nodePath) {
+        this.app.use(service.staticUrl, express.static(service.nodePath));
+      }
     }
     this.server.on("request", (req: Request, res: Response) => {
       this.app(req, res);
@@ -184,8 +158,10 @@ const ChemicalVitePlugin = (options: Options) => ({
       options = {};
     }
 
-    if (options.scramjet === undefined) {
-      options.scramjet = true;
+    for (const service of services) {
+      if (options[service.name] === undefined) {
+        options[service.name] = true;
+      }
     }
 
     if (options.demoMode === undefined) {
@@ -200,22 +176,30 @@ const ChemicalVitePlugin = (options: Options) => ({
       );
 
       if (options.default) {
-        if (options.default === "scramjet") {
+        const serviceNames = services.map((s) => s.name);
+        if (serviceNames.includes(options.default)) {
           chemicalMain =
             `const defaultService = "${options.default}";\n\n` + chemicalMain;
         } else {
-          chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+          chemicalMain =
+            `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
+            chemicalMain;
           console.error("Error: Chemical default option invalid.");
         }
       } else {
         chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
       }
 
-      chemicalMain =
-        "const scramjetEnabled = " +
-        String(options.scramjet) +
-        ";\n" +
-        chemicalMain;
+      for (const service of services) {
+        chemicalMain =
+          "const " +
+          service.name +
+          "Enabled = " +
+          String(options[service.name]) +
+          ";\n" +
+          chemicalMain;
+      }
+
       chemicalMain =
         "const demoMode = " + String(options.demoMode) + ";\n" + chemicalMain;
 
@@ -230,11 +214,15 @@ const ChemicalVitePlugin = (options: Options) => ({
         "utf8",
       );
 
-      chemicalSW =
-        "const scramjetEnabled = " +
-        String(options.scramjet) +
-        ";\n" +
-        chemicalSW;
+      for (const service of services) {
+        chemicalSW =
+          "const " +
+          service.name +
+          "Enabled = " +
+          String(options[service.name]) +
+          ";\n" +
+          chemicalSW;
+      }
 
       res.type("application/javascript");
       return res.send(chemicalSW);
@@ -243,8 +231,10 @@ const ChemicalVitePlugin = (options: Options) => ({
     app.use("/baremux/", express.static(baremuxPath));
     app.use("/libcurl/", express.static(libcurlPath));
     app.use("/epoxy/", express.static(epoxyPath));
-    if (options.scramjet) {
-      app.use("/scramjet/", express.static(scramjetPath));
+    for (const service of services) {
+      if (options[service.name] && service.nodePath) {
+        app.use(service.staticUrl, express.static(service.nodePath));
+      }
     }
     server.middlewares.use(app);
 
@@ -300,8 +290,10 @@ class ChemicalBuild {
       options.path = options.path.slice(0, -1);
     }
 
-    if (options.scramjet === undefined) {
-      options.scramjet = true;
+    for (const service of services) {
+      if (options[service.name] === undefined) {
+        options[service.name] = true;
+      }
     }
 
     if (options.demoMode === undefined) {
@@ -327,23 +319,31 @@ class ChemicalBuild {
     );
 
     if (this.options.default) {
-      if (this.options.default === "scramjet") {
+      const serviceNames = services.map((s) => s.name);
+      if (serviceNames.includes(this.options.default)) {
         chemicalMain =
           `const defaultService = "${this.options.default}";\n\n` +
           chemicalMain;
       } else {
-        chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+        chemicalMain =
+          `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
+          chemicalMain;
         console.error("Error: Chemical default option invalid.");
       }
     } else {
       chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
     }
 
-    chemicalMain =
-      "const scramjetEnabled = " +
-      String(this.options.scramjet) +
-      ";\n" +
-      chemicalMain;
+    for (const service of services) {
+      chemicalMain =
+        "const " +
+        service.name +
+        "Enabled = " +
+        String(this.options[service.name]) +
+        ";\n" +
+        chemicalMain;
+    }
+
     chemicalMain =
       "const demoMode = " +
       String(this.options.demoMode) +
@@ -362,11 +362,15 @@ class ChemicalBuild {
       "utf8",
     );
 
-    chemicalSW =
-      "const scramjetEnabled = " +
-      String(this.options.scramjet) +
-      ";\n" +
-      chemicalSW;
+    for (const service of services) {
+      chemicalSW =
+        "const " +
+        service.name +
+        "Enabled = " +
+        String(this.options[service.name]) +
+        ";\n" +
+        chemicalSW;
+    }
 
     writeFileSync(
       resolve(this.options.path || "", "chemical.sw.js"),
@@ -392,6 +396,15 @@ class ChemicalBuild {
     cpSync(libcurlPath, resolve(this.options.path || "", "libcurl"), {
       recursive: true,
     });
+    for (const service of services) {
+      if (this.options[service.name] && service.nodePath) {
+        cpSync(
+          service.nodePath,
+          resolve(this.options.path || "", service.name),
+          { recursive: true },
+        );
+      }
+    }
   }
 }
 
