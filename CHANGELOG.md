@@ -1,4 +1,14 @@
-# 1.1.0 (2026-06-11)
+# [1.2.0](https://github.com/Coding4Hours/caelum/compare/v1.1.0...v1.2.0) (2026-06-11)
+
+
+### Features
+
+* thign ([2b1ebe5](https://github.com/Coding4Hours/caelum/commit/2b1ebe5d4cb8054abcee8e36ec0ee4d4898325a9))
+* update ci ([85f3dab](https://github.com/Coding4Hours/caelum/commit/85f3dabbaacba12dfb9eacceddbf1f0ca8652a59))
+
+
+
+# [1.1.0](https://github.com/Coding4Hours/caelum/compare/fe37747ceedc4eacef1b57d44404809c9c50b2a8...v1.1.0) (2026-06-11)
 
 
 ### Bug Fixes
