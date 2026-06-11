@@ -3,7 +3,7 @@ import type { Socket } from "node:net";
 import express, {
   type Request,
   type Response,
-  type application,
+  type Application,
 } from "express";
 //@ts-ignore
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
@@ -19,6 +19,10 @@ const ROOT = new URL("..", import.meta.url).pathname;
 logging.set_level(logging.ERROR);
 
 class ChemicalServer {
+  options: Options;
+  server: import("http").Server;
+  app: Application;
+
   constructor(options: Options = {}) {
     if (options) {
       if (typeof options !== "object" || Array.isArray(options)) {
@@ -44,11 +48,11 @@ class ChemicalServer {
     this.app = express();
     this.app.serveChemical = this.serveChemical;
   }
-  [Symbol.iterator](): Iterator<application | Function> {
+  [Symbol.iterator](): Iterator<Application | Function> {
     return [this.app, this.listen][Symbol.iterator]();
   }
   serveChemical = () => {
-    this.app.get("/chemical.js", async (req: Request, res: Response) => {
+    this.app.get("/chemical.js", async (res: Response) => {
       let chemicalMain = await Bun.file(ROOT + "client/chemical.js").text();
 
       if (this.options.default) {
@@ -88,7 +92,7 @@ class ChemicalServer {
       res.type("application/javascript");
       return res.send(chemicalMain);
     });
-    this.app.get("/chemical.sw.js", async (req: Request, res: Response) => {
+    this.app.get("/chemical.sw.js", async (res: Response) => {
       let chemicalSW = await Bun.file(ROOT + "client/chemical.sw.js").text();
 
       for (const service of services) {
@@ -136,6 +140,8 @@ class ChemicalServer {
 }
 
 class ChemicalBuild {
+  options: BuildOptions;
+
   constructor(options: BuildOptions) {
     if (options) {
       if (typeof options !== "object" || Array.isArray(options)) {

@@ -30,12 +30,4 @@ interface BuildOptions extends Options {
   path?: string;
 }
 
-interface ChemicalServer {
-  options: Options;
-  server: import("http").Server;
-  app: import("express").application;
-}
 
-interface ChemicalBuild {
-  options: BuildOptions;
-}

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "types": [
-      "bun"
+      "bun",
+      "express"
     ],
     "target": "ESNext",
     "module": "ESNext",
