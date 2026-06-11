@@ -15,8 +15,22 @@ env:
   IMAGE_NAME: hydra-network/bromine
   
 jobs:
-  publichs:
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Conventional Changelog Action
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.github_token }}
+
+  publish:
     name: Publish
+    needs: [changelog]
     runs-on: ubuntu-slim
     steps:
       - name: Checkout
@@ -34,17 +48,3 @@ jobs:
         run: bun publish
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
-
-
-  changelog:
-    name: Changelog
-    runs-on: ubuntu-slim
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Conventional Changelog Action
-        uses: TriPSs/conventional-changelog-action@v5
-        with:
-          github-token: ${{ secrets.github_token }}
