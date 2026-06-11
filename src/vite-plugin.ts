@@ -1,11 +1,12 @@
 import type { Socket } from "net";
-import express, { type Request, type Response, type application } from "express";
+import express, {
+  type Request,
+  type Response,
+  type Application,
+} from "express";
 //@ts-ignore
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
-import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
-import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
-import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import type { ViteDevServer } from "vite";
 import { services } from "./proxys";
 
@@ -33,7 +34,7 @@ const CaelumVitePlugin = (options: Options) => ({
       options.demoMode = false;
     }
 
-    const app: application = express();
+    const app: Application = express();
     app.get("/caelum.js", async function (req: Request, res: Response) {
       let caelumMain: string = await Bun.file(ROOT + "client/caelum.js").text();
 
@@ -71,7 +72,9 @@ const CaelumVitePlugin = (options: Options) => ({
       return res.send(caelumMain);
     });
     app.get("/caelum.sw.js", async function (req: Request, res: Response) {
-      let caelumSW: string = await Bun.file(ROOT + "client/caelum.sw.js").text();
+      let caelumSW: string = await Bun.file(
+        ROOT + "client/caelum.sw.js",
+      ).text();
 
       for (const service of services) {
         caelumSW =
@@ -87,9 +90,6 @@ const CaelumVitePlugin = (options: Options) => ({
       return res.send(caelumSW);
     });
     app.use(express.static(ROOT + "client"));
-    app.use("/baremux/", express.static(baremuxPath));
-    app.use("/libcurl/", express.static(libcurlPath));
-    app.use("/epoxy/", express.static(epoxyPath));
     for (const service of services) {
       if (options[service.name] && service.nodePath) {
         const paths = Array.isArray(service.nodePath)

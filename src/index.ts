@@ -8,9 +8,6 @@ import express, {
 //@ts-ignore
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
-import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
-import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
-import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { services } from "./proxys";
 import { CaelumVitePlugin } from "./vite-plugin";
 
@@ -109,9 +106,6 @@ class CaelumServer {
       return res.send(caelumSW);
     });
     this.app.use(express.static(ROOT + "client"));
-    this.app.use("/baremux/", express.static(baremuxPath));
-    this.app.use("/libcurl/", express.static(libcurlPath));
-    this.app.use("/epoxy/", express.static(epoxyPath));
     for (const service of services) {
       if (this.options[service.name] && service.nodePath) {
         const paths = Array.isArray(service.nodePath)
@@ -192,16 +186,13 @@ class CaelumBuild {
       await Bun.$`mkdir -p ${absDest}`;
     }
 
-    let caelumMain: string = await Bun.file(
-      ROOT + "client/caelum.js",
-    ).text();
+    let caelumMain: string = await Bun.file(ROOT + "client/caelum.js").text();
 
     if (this.options.default) {
       const serviceNames = services.map((s) => s.name);
       if (serviceNames.includes(this.options.default)) {
         caelumMain =
-          `const defaultService = "${this.options.default}";\n\n` +
-          caelumMain;
+          `const defaultService = "${this.options.default}";\n\n` + caelumMain;
       } else {
         caelumMain =
           `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
@@ -223,18 +214,13 @@ class CaelumBuild {
     }
 
     caelumMain =
-      "const demoMode = " +
-      String(this.options.demoMode) +
-      ";\n" +
-      caelumMain;
+      "const demoMode = " + String(this.options.demoMode) + ";\n" + caelumMain;
 
     caelumMain = "(async () => {\n" + caelumMain + "\n})();";
 
     await Bun.write(`${absDest}/caelum.js`, caelumMain);
 
-    let caelumSW: string = await Bun.file(
-      ROOT + "client/caelum.sw.js",
-    ).text();
+    let caelumSW: string = await Bun.file(ROOT + "client/caelum.sw.js").text();
 
     for (const service of services) {
       caelumSW =
