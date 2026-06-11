@@ -4,6 +4,7 @@
       "bun",
       "express"
     ],
+    "rootDir": "./src",
     "target": "ESNext",
     "module": "ESNext",
     "esModuleInterop": true,

@@ -241,10 +241,6 @@ class CaelumBuild {
       );
     }
 
-    await Bun.$`cp -r ${baremuxPath} ${absDest}/baremux`;
-    await Bun.$`cp -r ${libcurlPath} ${absDest}/libcurl`;
-    await Bun.$`cp -r ${epoxyPath} ${absDest}/epoxy`;
-    await Bun.$`cp -r ${libcurlPath} ${absDest}/libcurl`;
     for (const service of services) {
       if (this.options[service.name] && service.nodePath) {
         const paths = Array.isArray(service.nodePath)
