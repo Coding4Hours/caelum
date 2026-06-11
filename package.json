@@ -19,9 +19,9 @@
   "author": "Nebelung",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "build": "npm run build-uv && tsup",
+    "build": "bun run build-uv && rm -rf dist && bun build ./src/index.ts --outfile ./dist/index.js --format esm --target node --sourcemap external && bun build ./src/index.ts --outfile ./dist/index.cjs --format cjs --target node --sourcemap external && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
     "prepack": "bun build",
-    "build-uv": "node build-uv.js"
+    "build-uv": "bun build-uv.js"
   },
   "dependencies": {
     "@mercuryworkshop/epoxy-transport": "^3.0.1",
@@ -35,8 +35,5 @@
     "nanoid": "^5.1.11",
     "typescript": "^6.0.3",
     "vite": "^8.0.16"
-  },
-  "devDependencies": {
-    "tsup": "^8.5.1"
   }
 }
