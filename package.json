@@ -3,23 +3,16 @@
   "version": "1.0.0",
   "description": "Easily create your own web proxy with no experience required.",
   "type": "module",
-  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    "import": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "require": {
-      "types": "./dist/index.d.cts",
-      "default": "./dist/index.cjs"
-    }
+    "types": "./dist/index.d.ts",
+    "default": "./dist/index.js"
   },
   "author": "Coding4hours",
   "license": "MIT",
   "scripts": {
-    "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=bun --sourcemap=linked && bun build ./src/index.ts --outfile=./dist/index.cjs --format=cjs --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
+    "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist",
     "prepack": "bun run build"
   },
   "dependencies": {
