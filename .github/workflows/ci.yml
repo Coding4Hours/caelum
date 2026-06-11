@@ -26,7 +26,7 @@ jobs:
       - name: Conventional Changelog Action
         uses: TriPSs/conventional-changelog-action@v5
         with:
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.BUN_TOKEn }}
 
   publish:
     name: Publish
