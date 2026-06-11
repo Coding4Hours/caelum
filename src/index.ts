@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { createServer, Server } from "node:http";
 import { Socket } from "node:net";
-import express, { Request, Response, application, Next } from "express";
+import express, { Request, Response, application } from "express";
 //@ts-ignore
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 //@ts-ignore
@@ -20,10 +20,7 @@ import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { uvPath } from "../ultraviolet/index.js";
 import { uvRandomPath } from "../ultraviolet/path.js";
-import { scramjetPath } from "@mercuryworkshop/scramjet";
-import createRammerhead, {
-  RammerheadProxy,
-} from "rammerhead/src/server/index.js";
+import { scramjetPath } from "@mercuryworkshop/scramjet/path";
 import { ViteDevServer } from "vite";
 
 logging.set_level(logging.ERROR);
@@ -51,7 +48,6 @@ interface WispOptions {
 interface Options {
   uv?: boolean;
   scramjet?: boolean;
-  rh?: boolean;
   demoMode?: boolean;
   default?: string;
   wispOptions?: WispOptions;
@@ -90,10 +86,6 @@ class ChemicalServer {
       options.scramjet = true;
     }
 
-    if (options.rh === undefined) {
-      options.rh = true;
-    }
-
     if (options.demoMode === undefined) {
       options.demoMode = false;
     }
@@ -107,38 +99,6 @@ class ChemicalServer {
     return [this.app, this.listen][Symbol.iterator]();
   }
   serveChemical = () => {
-    const rh: RammerheadProxy = createRammerhead();
-    const rammerheadScopes: Array<string> = [
-      "/rammerhead.js",
-      "/hammerhead.js",
-      "/transport-worker.js",
-      "/task.js",
-      "/iframe-task.js",
-      "/worker-hammerhead.js",
-      "/messaging",
-      "/sessionexists",
-      "/deletesession",
-      "/newsession",
-      "/editsession",
-      "/needpassword",
-      "/syncLocalStorage",
-      "/api/shuffleDict",
-    ];
-    const rammerheadSession: RegExp = /^\/[a-z0-9]{32}/;
-    const shouldRouteRh = (req: Request): boolean => {
-      const url = new URL(req.url, "http://0.0.0.0");
-      return (
-        rammerheadScopes.includes(url.pathname) ||
-        rammerheadSession.test(url.pathname)
-      );
-    };
-    const routeRhRequest = (req: Request, res: Response) => {
-      rh.emit("request", req, res);
-    };
-    const routeRhUpgrade = (req: Request, socket: Socket, head: Buffer) => {
-      rh.emit("upgrade", req, socket, head);
-    };
-
     this.app.get("/chemical.js", async (req: Request, res: Response) => {
       let chemicalMain = await readFileSync(
         resolve(__dirname, "../client/chemical.js"),
@@ -146,7 +106,7 @@ class ChemicalServer {
       );
 
       if (this.options.default) {
-        if (["uv", "rh", "scramjet"].includes(this.options.default)) {
+        if (["uv", "scramjet"].includes(this.options.default)) {
           chemicalMain =
             `const defaultService = "${this.options.default}";\n\n` +
             chemicalMain;
@@ -163,11 +123,6 @@ class ChemicalServer {
       chemicalMain =
         "const scramjetEnabled = " +
         String(this.options.scramjet) +
-        ";\n" +
-        chemicalMain;
-      chemicalMain =
-        "const rammerheadEnabled = " +
-        String(this.options.rh) +
         ";\n" +
         chemicalMain;
       chemicalMain =
@@ -197,11 +152,6 @@ class ChemicalServer {
         ";\n" +
         chemicalSW;
       chemicalSW =
-        "const rammerheadEnabled = " +
-        String(this.options.rh) +
-        ";\n" +
-        chemicalSW;
-      chemicalSW =
         `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
       res.type("application/javascript");
@@ -218,11 +168,7 @@ class ChemicalServer {
       this.app.use("/scramjet/", express.static(scramjetPath));
     }
     this.server.on("request", (req: Request, res: Response) => {
-      if (this.options.rh && shouldRouteRh(req)) {
-        routeRhRequest(req, res);
-      } else {
-        this.app(req, res);
-      }
+      this.app(req, res);
     });
     this.server.on("upgrade", (req: Request, socket: Socket, head: Buffer) => {
       if (req.url && req.url.endsWith("/wisp/")) {
@@ -233,8 +179,6 @@ class ChemicalServer {
           }
         }
         wisp.routeRequest(req, socket, head);
-      } else if (this.options.rh && shouldRouteRh(req)) {
-        routeRhUpgrade(req, socket, head);
       } else {
         socket.end();
       }
@@ -265,45 +209,9 @@ const ChemicalVitePlugin = (options: Options) => ({
       options.scramjet = true;
     }
 
-    if (options.rh === undefined) {
-      options.rh = true;
-    }
-
     if (options.demoMode === undefined) {
       options.demoMode = false;
     }
-
-    const rh: RammerheadProxy = createRammerhead();
-    const rammerheadScopes: Array<string> = [
-      "/rammerhead.js",
-      "/hammerhead.js",
-      "/transport-worker.js",
-      "/task.js",
-      "/iframe-task.js",
-      "/worker-hammerhead.js",
-      "/messaging",
-      "/sessionexists",
-      "/deletesession",
-      "/newsession",
-      "/editsession",
-      "/needpassword",
-      "/syncLocalStorage",
-      "/api/shuffleDict",
-    ];
-    const rammerheadSession: RegExp = /^\/[a-z0-9]{32}/;
-    const shouldRouteRh = (req: Request): boolean => {
-      const url: URL = new URL(req.url, "http://0.0.0.0");
-      return (
-        rammerheadScopes.includes(url.pathname) ||
-        rammerheadSession.test(url.pathname)
-      );
-    };
-    const routeRhRequest = (req: Request, res: Response) => {
-      rh.emit("request", req, res);
-    };
-    const routeRhUpgrade = (req: Request, socket: Socket, head: Buffer) => {
-      rh.emit("upgrade", req, socket, head);
-    };
 
     const app: application = express();
     app.get("/chemical.js", async function (req: Request, res: Response) {
@@ -313,7 +221,7 @@ const ChemicalVitePlugin = (options: Options) => ({
       );
 
       if (options.default) {
-        if (["uv", "rh", "scramjet"].includes(options.default)) {
+        if (["uv", "scramjet"].includes(options.default)) {
           chemicalMain =
             `const defaultService = "${options.default}";\n\n` + chemicalMain;
         } else {
@@ -329,11 +237,6 @@ const ChemicalVitePlugin = (options: Options) => ({
       chemicalMain =
         "const scramjetEnabled = " +
         String(options.scramjet) +
-        ";\n" +
-        chemicalMain;
-      chemicalMain =
-        "const rammerheadEnabled = " +
-        String(options.rh) +
         ";\n" +
         chemicalMain;
       chemicalMain =
@@ -360,11 +263,6 @@ const ChemicalVitePlugin = (options: Options) => ({
         ";\n" +
         chemicalSW;
       chemicalSW =
-        "const rammerheadEnabled = " +
-        String(options.rh) +
-        ";\n" +
-        chemicalSW;
-      chemicalSW =
         `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
       res.type("application/javascript");
@@ -381,14 +279,6 @@ const ChemicalVitePlugin = (options: Options) => ({
       app.use("/scramjet/", express.static(scramjetPath));
     }
     server.middlewares.use(app);
-
-    server.middlewares.use((req: Request, res: Request, next: Next) => {
-      if (options.rh && shouldRouteRh(req)) {
-        routeRhRequest(req, res);
-      } else {
-        next();
-      }
-    });
 
     const upgraders = server.httpServer?.listeners("upgrade") as ((
       ...args: any[]
@@ -409,8 +299,6 @@ const ChemicalVitePlugin = (options: Options) => ({
             }
           }
           wisp.routeRequest(req, socket, head);
-        } else if (options.rh && shouldRouteRh(req)) {
-          routeRhUpgrade(req, socket, head);
         } else {
           for (const upgrader of upgraders) {
             upgrader(req, socket, head);
@@ -452,10 +340,6 @@ class ChemicalBuild {
       options.scramjet = true;
     }
 
-    if (options.rh === undefined) {
-      options.rh = true;
-    }
-
     if (options.demoMode === undefined) {
       options.demoMode = false;
     }
@@ -479,7 +363,7 @@ class ChemicalBuild {
     );
 
     if (this.options.default) {
-      if (["uv", "rh", "scramjet"].includes(this.options.default)) {
+      if (["uv", "scramjet"].includes(this.options.default)) {
         chemicalMain =
           `const defaultService = "${this.options.default}";\n\n` +
           chemicalMain;
@@ -498,13 +382,8 @@ class ChemicalBuild {
       String(this.options.scramjet) +
       ";\n" +
       chemicalMain;
-    chemicalMain =
-      "const rammerheadEnabled = " +
-      String(this.options.rh) +
-      ";\n" +
-      chemicalMain;
-    chemicalMain =
-      "const demoMode = " +
+      chemicalMain =
+        "const demoMode = " +
       String(this.options.demoMode) +
       ";\n" +
       chemicalMain;
@@ -530,13 +409,8 @@ class ChemicalBuild {
       String(this.options.scramjet) +
       ";\n" +
       chemicalSW;
-    chemicalSW =
-      "const rammerheadEnabled = " +
-      String(this.options.rh) +
-      ";\n" +
-      chemicalSW;
-    chemicalSW =
-      `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
+      chemicalSW =
+        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
     writeFileSync(
       resolve(this.options.path || "", "chemical.sw.js"),

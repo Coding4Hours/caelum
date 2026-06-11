@@ -19,8 +19,8 @@
   "author": "Nebelung",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "build": "bun run build-uv && rm -rf dist && bun build ./src/index.ts --outfile ./dist/index.js --format esm --target node --sourcemap external && bun build ./src/index.ts --outfile ./dist/index.cjs --format cjs --target node --sourcemap external && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
-    "prepack": "bun build",
+    "build": "bun run build-uv && rm -rf dist && bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=node --sourcemap=linked && bun build ./src/index.ts --outfile=./dist/index.cjs --format=cjs --target=node --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
+    "prepack": "bun run build",
     "build-uv": "bun build-uv.js"
   },
   "dependencies": {
@@ -31,7 +31,6 @@
     "@mercuryworkshop/wisp-js": "^0.4.1",
     "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
     "express": "^5.2.1",
-    "glob": "^13.0.6",
     "nanoid": "^5.1.11",
     "typescript": "^6.0.3",
     "vite": "^8.0.16"
