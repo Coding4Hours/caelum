@@ -1,4 +1,4 @@
-class ChemicalTitle extends HTMLTitleElement {
+class CaelumTitle extends HTMLTitleElement {
   constructor() {
     super();
   }
@@ -8,7 +8,7 @@ class ChemicalTitle extends HTMLTitleElement {
 
       const title =
         this.dataset.titleStore !== undefined
-          ? localStorage.getItem("@chemical/title") ||
+          ? localStorage.getItem("@caelum/title") ||
             this.getAttribute("data-title")
           : this.getAttribute("data-title");
 
@@ -17,7 +17,7 @@ class ChemicalTitle extends HTMLTitleElement {
   }
 }
 
-class ChemicalIcon extends HTMLLinkElement {
+class CaelumIcon extends HTMLLinkElement {
   constructor() {
     super();
   }
@@ -27,7 +27,7 @@ class ChemicalIcon extends HTMLLinkElement {
 
       const icon =
         this.dataset.iconStore !== undefined
-          ? localStorage.getItem("@chemical/icon") ||
+          ? localStorage.getItem("@caelum/icon") ||
             this.getAttribute("data-icon")
           : this.getAttribute("data-icon");
 
@@ -36,10 +36,10 @@ class ChemicalIcon extends HTMLLinkElement {
   }
 }
 
-customElements.define("chemical-title", ChemicalTitle, { extends: "title" });
-customElements.define("chemical-icon", ChemicalIcon, { extends: "link" });
+customElements.define("caelum-title", CaelumTitle, { extends: "title" });
+customElements.define("caelum-icon", CaelumIcon, { extends: "link" });
 
-window.chemical.aboutBlank = function (url) {
+window.caelum.aboutBlank = function (url) {
   var page = window.open();
   page.document.body.innerHTML =
     `<iframe style="height:100%; width: 100%; border: none; position: fixed; top: 0; right: 0; left: 0; bottom: 0; border: none" sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation" src="` +

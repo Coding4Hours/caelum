@@ -7,15 +7,15 @@ import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { services } from "./proxys";
-import { ChemicalVitePlugin } from "./vite-plugin";
+import { CaelumVitePlugin } from "./vite-plugin";
 const ROOT = new URL("..", import.meta.url).pathname;
 logging.set_level(logging.ERROR);
-class ChemicalServer {
+class CaelumServer {
     constructor(options = {}) {
         if (options) {
             if (typeof options !== "object" || Array.isArray(options)) {
                 options = {};
-                console.error("Error: ChemicalServer options invalid.");
+                console.error("Error: CaelumServer options invalid.");
             }
         }
         else {
@@ -32,62 +32,62 @@ class ChemicalServer {
         this.options = options;
         this.server = createServer();
         this.app = express();
-        this.app.serveChemical = this.serveChemical;
+        this.app.serveCaelum = this.serveCaelum;
     }
     [Symbol.iterator]() {
         return [this.app, this.listen][Symbol.iterator]();
     }
-    serveChemical = () => {
-        this.app.get("/chemical.js", async (req, res) => {
-            let chemicalMain = await Bun.file(ROOT + "client/chemical.js").text();
+    serveCaelum = () => {
+        this.app.get("/caelum.js", async (req, res) => {
+            let caelumMain = await Bun.file(ROOT + "client/caelum.js").text();
             if (this.options.default) {
                 const serviceNames = services.map((s) => s.name);
                 if (serviceNames.includes(this.options.default)) {
-                    chemicalMain =
+                    caelumMain =
                         `const defaultService = "${this.options.default}";\n\n` +
-                            chemicalMain;
+                            caelumMain;
                 }
                 else {
-                    chemicalMain =
+                    caelumMain =
                         `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
-                            chemicalMain;
-                    console.error("Error: Chemical default option invalid.");
+                            caelumMain;
+                    console.error("Error: Caelum default option invalid.");
                 }
             }
             else {
-                chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+                caelumMain = `const defaultService = "scramjet";\n\n` + caelumMain;
             }
             for (const service of services) {
-                chemicalMain =
+                caelumMain =
                     "const " +
                         service.name +
                         "Enabled = " +
                         String(this.options[service.name]) +
                         ";\n" +
-                        chemicalMain;
+                        caelumMain;
             }
-            chemicalMain =
+            caelumMain =
                 "const demoMode = " +
                     String(this.options.demoMode) +
                     ";\n" +
-                    chemicalMain;
-            chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
+                    caelumMain;
+            caelumMain = "(async () => {\n" + caelumMain + "\n})();";
             res.type("application/javascript");
-            return res.send(chemicalMain);
+            return res.send(caelumMain);
         });
-        this.app.get("/chemical.sw.js", async (req, res) => {
-            let chemicalSW = await Bun.file(ROOT + "client/chemical.sw.js").text();
+        this.app.get("/caelum.sw.js", async (req, res) => {
+            let caelumSW = await Bun.file(ROOT + "client/caelum.sw.js").text();
             for (const service of services) {
-                chemicalSW =
+                caelumSW =
                     "const " +
                         service.name +
                         "Enabled = " +
                         String(this.options[service.name]) +
                         ";\n" +
-                        chemicalSW;
+                        caelumSW;
             }
             res.type("application/javascript");
-            return res.send(chemicalSW);
+            return res.send(caelumSW);
         });
         this.app.use(express.static(ROOT + "client"));
         this.app.use("/baremux/", express.static(baremuxPath));
@@ -95,7 +95,12 @@ class ChemicalServer {
         this.app.use("/epoxy/", express.static(epoxyPath));
         for (const service of services) {
             if (this.options[service.name] && service.nodePath) {
-                this.app.use(service.staticUrl, express.static(service.nodePath));
+                const paths = Array.isArray(service.nodePath)
+                    ? service.nodePath
+                    : [service.nodePath];
+                for (const p of paths) {
+                    this.app.use(service.staticUrl, express.static(p));
+                }
             }
         }
         this.server.on("request", (req, res) => {
@@ -120,12 +125,12 @@ class ChemicalServer {
         this.server.listen(port, callback);
     };
 }
-class ChemicalBuild {
+class CaelumBuild {
     constructor(options) {
         if (options) {
             if (typeof options !== "object" || Array.isArray(options)) {
                 options = {};
-                console.error("Error: ChemicalBuild options invalid.");
+                console.error("Error: CaelumBuild options invalid.");
             }
         }
         else {
@@ -160,53 +165,53 @@ class ChemicalBuild {
             await Bun.$ `rm -rf ${absDest}`;
             await Bun.$ `mkdir -p ${absDest}`;
         }
-        let chemicalMain = await Bun.file(ROOT + "client/chemical.js").text();
+        let caelumMain = await Bun.file(ROOT + "client/caelum.js").text();
         if (this.options.default) {
             const serviceNames = services.map((s) => s.name);
             if (serviceNames.includes(this.options.default)) {
-                chemicalMain =
+                caelumMain =
                     `const defaultService = "${this.options.default}";\n\n` +
-                        chemicalMain;
+                        caelumMain;
             }
             else {
-                chemicalMain =
+                caelumMain =
                     `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
-                        chemicalMain;
-                console.error("Error: Chemical default option invalid.");
+                        caelumMain;
+                console.error("Error: Caelum default option invalid.");
             }
         }
         else {
-            chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+            caelumMain = `const defaultService = "scramjet";\n\n` + caelumMain;
         }
         for (const service of services) {
-            chemicalMain =
+            caelumMain =
                 "const " +
                     service.name +
                     "Enabled = " +
                     String(this.options[service.name]) +
                     ";\n" +
-                    chemicalMain;
+                    caelumMain;
         }
-        chemicalMain =
+        caelumMain =
             "const demoMode = " +
                 String(this.options.demoMode) +
                 ";\n" +
-                chemicalMain;
-        chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
-        await Bun.write(`${absDest}/chemical.js`, chemicalMain);
-        let chemicalSW = await Bun.file(ROOT + "client/chemical.sw.js").text();
+                caelumMain;
+        caelumMain = "(async () => {\n" + caelumMain + "\n})();";
+        await Bun.write(`${absDest}/caelum.js`, caelumMain);
+        let caelumSW = await Bun.file(ROOT + "client/caelum.sw.js").text();
         for (const service of services) {
-            chemicalSW =
+            caelumSW =
                 "const " +
                     service.name +
                     "Enabled = " +
                     String(this.options[service.name]) +
                     ";\n" +
-                    chemicalSW;
+                    caelumSW;
         }
-        await Bun.write(`${absDest}/chemical.sw.js`, chemicalSW);
+        await Bun.write(`${absDest}/caelum.sw.js`, caelumSW);
         if (this.options.demoMode) {
-            await Bun.write(`${absDest}/chemical.demo.html`, Bun.file(ROOT + "client/chemical.demo.html"));
+            await Bun.write(`${absDest}/caelum.demo.html`, Bun.file(ROOT + "client/caelum.demo.html"));
         }
         await Bun.$ `cp -r ${baremuxPath} ${absDest}/baremux`;
         await Bun.$ `cp -r ${libcurlPath} ${absDest}/libcurl`;
@@ -214,9 +219,14 @@ class ChemicalBuild {
         await Bun.$ `cp -r ${libcurlPath} ${absDest}/libcurl`;
         for (const service of services) {
             if (this.options[service.name] && service.nodePath) {
-                await Bun.$ `cp -r ${service.nodePath} ${absDest}/${service.name}`;
+                const paths = Array.isArray(service.nodePath)
+                    ? service.nodePath
+                    : [service.nodePath];
+                for (const p of paths) {
+                    await Bun.$ `cp -r ${p} ${absDest}/${service.name}`;
+                }
             }
         }
     }
 }
-export { ChemicalServer, ChemicalBuild, ChemicalVitePlugin };
+export { CaelumServer, CaelumBuild, CaelumVitePlugin };

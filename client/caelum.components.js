@@ -1,31 +1,31 @@
-class ChemicalInput extends HTMLInputElement {
+class CaelumInput extends HTMLInputElement {
   constructor() {
     super();
   }
   connectedCallback() {
     this.addEventListener("keydown", async function (e) {
-      if (e.key === "Enter" && window.chemical.loaded && e.target.value) {
+      if (e.key === "Enter" && window.caelum.loaded && e.target.value) {
         let service =
           this.dataset.serviceStore !== undefined
-            ? localStorage.getItem("@chemical/service") ||
+            ? localStorage.getItem("@caelum/service") ||
               this.dataset.service ||
               "scramjet"
             : this.dataset.service || "scramjet";
         let autoHttps =
           this.dataset.autoHttpsStore !== undefined
-            ? localStorage.getItem("@chemical/autoHttps") === "true"
+            ? localStorage.getItem("@caelum/autoHttps") === "true"
             : this.dataset.autoHttps !== undefined
               ? true
               : false;
         let searchEngine =
           this.dataset.searchEngineStore !== undefined
-            ? localStorage.getItem("@chemical/searchEngine") ||
+            ? localStorage.getItem("@caelum/searchEngine") ||
               this.dataset.searchEngine
             : this.dataset.searchEngine;
         let action = this.dataset.action;
         let target = this.dataset.target;
         let frame = this.dataset.frame;
-        let encodedURL = await chemical.encode(e.target.value, {
+        let encodedURL = await caelum.encode(e.target.value, {
           service,
           autoHttps,
           searchEngine,
@@ -53,7 +53,7 @@ class ChemicalInput extends HTMLInputElement {
   }
 }
 
-class ChemicalButton extends HTMLButtonElement {
+class CaelumButton extends HTMLButtonElement {
   constructor() {
     super();
   }
@@ -72,7 +72,7 @@ class ChemicalButton extends HTMLButtonElement {
   }
 }
 
-class ChemicalIFrame extends HTMLIFrameElement {
+class CaelumIFrame extends HTMLIFrameElement {
   static observedAttributes = ["data-open"];
   constructor() {
     super();
@@ -95,7 +95,7 @@ class ChemicalIFrame extends HTMLIFrameElement {
   }
 }
 
-class ChemicalControls extends HTMLElement {
+class CaelumControls extends HTMLElement {
   static observedAttributes = ["data-open"];
   constructor() {
     super();
@@ -112,7 +112,7 @@ class ChemicalControls extends HTMLElement {
   }
 }
 
-class ChemicalLink extends HTMLAnchorElement {
+class CaelumLink extends HTMLAnchorElement {
   constructor() {
     super();
   }
@@ -121,35 +121,35 @@ class ChemicalLink extends HTMLAnchorElement {
     let service = this.dataset.service || "scramjet";
     let autoHttps = this.dataset.autoHttps !== undefined ? true : false;
     let searchEngine = this.dataset.searchEngine;
-    this.dataset.chemicalLoading = "true";
+    this.dataset.caelumLoading = "true";
 
-    if (window.chemical.loaded) {
+    if (window.caelum.loaded) {
       this.setAttribute(
         "href",
-        await chemical.encode(href, {
+        await caelum.encode(href, {
           service,
           autoHttps,
           searchEngine,
         }),
       );
-      this.dataset.chemicalLoading = "false";
+      this.dataset.caelumLoading = "false";
     } else {
-      window.addEventListener("chemicalLoaded", async () => {
+      window.addEventListener("caelumLoaded", async () => {
         this.setAttribute(
           "href",
-          await chemical.encode(href, {
+          await caelum.encode(href, {
             service,
             autoHttps,
             searchEngine,
           }),
         );
-        this.dataset.chemicalLoading = "false";
+        this.dataset.caelumLoading = "false";
       });
     }
   }
 }
 
-class ChemicalSelect extends HTMLSelectElement {
+class CaelumSelect extends HTMLSelectElement {
   constructor() {
     super();
   }
@@ -157,11 +157,11 @@ class ChemicalSelect extends HTMLSelectElement {
     const store = this.dataset.defaultStore;
 
     this.addEventListener("change", function () {
-      window.chemical.setStore(store, this.value);
+      window.caelum.setStore(store, this.value);
     });
 
     if (store) {
-      const value = window.chemical.getStore(store);
+      const value = window.caelum.getStore(store);
 
       const observerOptions = {
         childList: true,
@@ -184,16 +184,16 @@ class ChemicalSelect extends HTMLSelectElement {
   }
 }
 
-customElements.define("chemical-input", ChemicalInput, { extends: "input" });
-customElements.define("chemical-button", ChemicalButton, { extends: "button" });
-customElements.define("chemical-iframe", ChemicalIFrame, { extends: "iframe" });
-customElements.define("chemical-controls", ChemicalControls, {
+customElements.define("caelum-input", CaelumInput, { extends: "input" });
+customElements.define("caelum-button", CaelumButton, { extends: "button" });
+customElements.define("caelum-iframe", CaelumIFrame, { extends: "iframe" });
+customElements.define("caelum-controls", CaelumControls, {
   extends: "section",
 });
-customElements.define("chemical-link", ChemicalLink, { extends: "a" });
-customElements.define("chemical-select", ChemicalSelect, { extends: "select" });
+customElements.define("caelum-link", CaelumLink, { extends: "a" });
+customElements.define("caelum-select", CaelumSelect, { extends: "select" });
 
-window.chemical.componentAction = function (action, frameID) {
+window.caelum.componentAction = function (action, frameID) {
   let frame = document.getElementById(frameID);
 
   if (frame) {

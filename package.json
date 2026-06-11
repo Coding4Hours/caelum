@@ -1,6 +1,6 @@
 {
-  "name": "chemicaljs",
-  "version": "2.6.4",
+  "name": "caelumjs",
+  "version": "1.0.0",
   "description": "Easily create your own web proxy with no experience required.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -16,8 +16,8 @@
       "default": "./dist/index.cjs"
     }
   },
-  "author": "Nebelung",
-  "license": "AGPL-3.0-only",
+  "author": "Coding4hours",
+  "license": "MIT",
   "scripts": {
     "build": "bun build ./src/index.ts --outfile=./dist/index.js --format=esm --target=bun --sourcemap=linked && bun build ./src/index.ts --outfile=./dist/index.cjs --format=cjs --target=bun --sourcemap=linked && bunx tsc --declaration --emitDeclarationOnly --outDir dist && cp dist/index.d.ts dist/index.d.cts",
     "prepack": "bun run build"

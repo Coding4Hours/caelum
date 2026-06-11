@@ -1,17 +1,17 @@
 const currentScript = document.currentScript;
 
-window.chemical = {
+window.caelum = {
   loaded: false,
   demoMode,
   transport:
     currentScript.dataset.transportStore !== undefined
-      ? localStorage.getItem("@chemical/transport") ||
+      ? localStorage.getItem("@caelum/transport") ||
         currentScript.dataset.transport ||
         "libcurl"
       : currentScript.dataset.transport || "libcurl",
   wisp:
     currentScript.dataset.wispStore !== undefined
-      ? localStorage.getItem("@chemical/wisp") ||
+      ? localStorage.getItem("@caelum/wisp") ||
         currentScript.dataset.wisp ||
         (location.protocol === "https:" ? "wss" : "ws") +
           "://" +
@@ -28,13 +28,13 @@ async function encodeService(url, service) {
   switch (service) {
     case "scramjet":
       if (scramjetEnabled) {
-        return window.location.origin + chemical.scramjet.encodeUrl(url);
+        return window.location.origin + caelum.scramjet.encodeUrl(url);
       }
       break;
   }
 }
 
-window.chemical.encode = async function (url, config) {
+window.caelum.encode = async function (url, config) {
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     config = {
       service: defaultService,
@@ -51,7 +51,7 @@ window.chemical.encode = async function (url, config) {
   }
 
   if (demoMode) {
-    return "/chemical.demo.html";
+    return "/caelum.demo.html";
   }
 
   if (url.match(/^https?:\/\//)) {
@@ -72,7 +72,7 @@ window.chemical.encode = async function (url, config) {
   }
 };
 
-window.chemical.decode = async function (url, config) {
+window.caelum.decode = async function (url, config) {
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     config = {
       service: defaultService,
@@ -88,7 +88,7 @@ window.chemical.decode = async function (url, config) {
   }
 };
 
-window.chemical.setStore = function (key, value) {
+window.caelum.setStore = function (key, value) {
   const allowed = [
     "transport",
     "wisp",
@@ -100,15 +100,15 @@ window.chemical.setStore = function (key, value) {
   ];
 
   if (allowed.includes(key)) {
-    localStorage.setItem("@chemical/" + key, String(value));
+    localStorage.setItem("@caelum/" + key, String(value));
     if (key === "transport") {
-      window.chemical.setTransport(value);
+      window.caelum.setTransport(value);
     }
     if (key === "wisp") {
-      window.chemical.setWisp(value);
+      window.caelum.setWisp(value);
     }
     if (key === "title") {
-      const titleElement = document.querySelector("title[is='chemical-title']");
+      const titleElement = document.querySelector("title[is='caelum-title']");
 
       if (titleElement) {
         titleElement.innerText =
@@ -116,7 +116,7 @@ window.chemical.setStore = function (key, value) {
       }
     }
     if (key === "icon") {
-      const iconElement = document.querySelector("link[is='chemical-icon']");
+      const iconElement = document.querySelector("link[is='caelum-icon']");
 
       if (iconElement) {
         iconElement.setAttribute(
@@ -126,27 +126,27 @@ window.chemical.setStore = function (key, value) {
       }
     }
     window.dispatchEvent(
-      new CustomEvent("chemicalStoreChange", {
+      new CustomEvent("caelumStoreChange", {
         detail: { key, value },
       })
     );
   }
 };
 
-window.chemical.getStore = function (key) {
+window.caelum.getStore = function (key) {
   const value =
     key === "autoHttps"
-      ? localStorage.getItem("@chemical/" + key) === "true"
-      : localStorage.getItem("@chemical/" + key);
+      ? localStorage.getItem("@caelum/" + key) === "true"
+      : localStorage.getItem("@caelum/" + key);
 
   const defaults = {
-    transport: window.chemical.transport,
-    wisp: window.chemical.wisp,
+    transport: window.caelum.transport,
+    wisp: window.caelum.wisp,
     service: "scramjet",
     autoHttps: false,
-    title: document.querySelector("title[is='chemical-title']")?.innerText,
+    title: document.querySelector("title[is='caelum-title']")?.innerText,
     icon: document
-      .querySelector("link[is='chemical-icon']")
+      .querySelector("link[is='caelum-icon']")
       ?.getAttribute("href"),
   };
 
@@ -165,15 +165,26 @@ function getTransport(transport) {
   }
 }
 
-window.chemical.setTransport = async function (newTransport) {
+window.caelum.setTransport = async function (newTransport) {
   newTransport = newTransport || currentScript.dataset.transport || "libcurl";
-  await window.chemical.connection.setTransport(getTransport(newTransport), [
-    { wisp: window.chemical.wisp },
-  ]);
-  window.chemical.transport = newTransport;
+  window.caelum.transport = newTransport;
+  if (window.caelum.connection) {
+    await window.caelum.connection.setTransport(getTransport(newTransport), [
+      { wisp: window.caelum.wisp },
+    ]);
+  }
+  if (window.caelum.scramjet) {
+    const resolvedWisp = window.caelum.wisp.startsWith("ws") || window.caelum.wisp.startsWith("http")
+      ? window.caelum.wisp
+      : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${window.caelum.wisp.startsWith("/") ? "" : "/"}${window.caelum.wisp}`;
+    const transport = newTransport === "epoxy"
+      ? new window.EpoxyTransport.EpoxyClient({ wisp: resolvedWisp })
+      : new window.LibcurlTransport.LibcurlClient({ wisp: resolvedWisp });
+    window.caelum.scramjet.setTransport(transport);
+  }
 };
 
-window.chemical.setWisp = async function (wisp) {
+window.caelum.setWisp = async function (wisp) {
   wisp =
     wisp ||
     currentScript.dataset.wisp ||
@@ -181,16 +192,24 @@ window.chemical.setWisp = async function (wisp) {
       "://" +
       location.host +
       "/wisp/";
-  await window.chemical.connection.setTransport(
-    getTransport(window.chemical.transport),
-    [{ wisp: wisp }]
-  );
-  window.chemical.wisp = wisp;
+  window.caelum.wisp = wisp;
+  if (window.caelum.connection) {
+    await window.caelum.connection.setTransport(
+      getTransport(window.caelum.transport),
+      [{ wisp: wisp }]
+    );
+  }
+  if (window.caelum.scramjet) {
+    const transportType = window.caelum.transport === "epoxy"
+      ? new window.EpoxyTransport.EpoxyClient({ wisp })
+      : new window.LibcurlTransport.LibcurlClient({ wisp });
+    window.caelum.scramjet.setTransport(transportType);
+  }
 };
 
 async function registerSW() {
   if ("serviceWorker" in navigator) {
-    await navigator.serviceWorker.register("/chemical.sw.js");
+    await navigator.serviceWorker.register("/caelum.sw.js");
   } else {
     console.error("Service worker failed to register.");
   }
@@ -212,15 +231,15 @@ async function loadScript(src) {
 
 function setupFetch() {
   const client = new window.BareMux.BareClient();
-  window.chemical.fetch = client.fetch.bind(client);
+  window.caelum.fetch = client.fetch.bind(client);
 
-  window.chemical.getSuggestions = async function (query) {
+  window.caelum.getSuggestions = async function (query) {
     if (!query) {
       return [];
     }
 
     try {
-      const DDGSuggestions = await window.chemical.fetch(
+      const DDGSuggestions = await window.caelum.fetch(
         "https://duckduckgo.com/ac/?q=" + query + "&type=list"
       );
       const suggestions = await DDGSuggestions.json();
@@ -230,10 +249,10 @@ function setupFetch() {
     }
   };
 
-  window.chemical.createDataURL = async function (url) {
+  window.caelum.createDataURL = async function (url) {
     return new Promise(async (resolve, reject) => {
       try {
-        const response = await window.chemical.fetch(url);
+        const response = await window.caelum.fetch(url);
         const blob = await response.blob();
         const reader = new FileReader();
 
@@ -250,24 +269,46 @@ function setupFetch() {
 }
 
 await loadScript("/baremux/index.js");
+
 if (scramjetEnabled) {
-  await loadScript("/scramjet/scramjet.all.js");
-  const { ScramjetController } = $scramjetLoadController();
-  
-  chemical.scramjet = new ScramjetController({
-    files: {
-      wasm: "/scramjet/scramjet.wasm.wasm",
-      all: "/scramjet/scramjet.all.js",
-      sync: "/scramjet/scramjet.sync.js",
-    }
-  })
-  chemical.scramjet.init();
+  await loadScript("/scramjet/scramjet.js");
+  await loadScript("/scramjet/controller.api.js");
 }
-window.chemical.connection = new window.BareMux.BareMuxConnection(
+
+await registerSW();
+
+if (scramjetEnabled) {
+  const transportType = caelum.transport === "epoxy" ? "EpoxyClient" : "LibcurlClient";
+  const transportModule = transportType === "EpoxyClient" ? window.EpoxyTransport : window.LibcurlTransport;
+  const transport = new transportModule[transportType]({ wisp: caelum.wisp });
+
+  const { Controller, config } = window.$scramjetController;
+  config.injectPath = "/scramjet/controller.inject.js";
+  config.wasmPath = "/scramjet/scramjet.wasm";
+  config.scramjetPath = "/scramjet/scramjet.js";
+
+  const sw = await navigator.serviceWorker.ready;
+  caelum.scramjet = new Controller({ serviceworker: sw, transport });
+  await caelum.scramjet.wait();
+  caelum.scramjet.encodeUrl = (url) => {
+    const ctx = {
+      config: caelum.scramjet.scramjetConfig,
+      prefix: new URL(caelum.scramjet.prefix + "x/", location.href),
+      interface: {
+        codecEncode: caelum.scramjet.config.codec.encode,
+        codecDecode: caelum.scramjet.config.codec.decode,
+      },
+    };
+    return $scramjet.rewriteUrl(url, ctx, {
+      origin: new URL(location.href),
+      base: new URL(location.href),
+    });
+  };
+}
+
+window.caelum.connection = new window.BareMux.BareMuxConnection(
   "/baremux/worker.js"
 );
-await window.chemical.setTransport(window.chemical.transport);
 setupFetch();
-await registerSW();
-window.chemical.loaded = true;
-window.dispatchEvent(new Event("chemicalLoaded"));
+window.caelum.loaded = true;
+window.dispatchEvent(new Event("caelumLoaded"));

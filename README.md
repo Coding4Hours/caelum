@@ -1,8 +1,7 @@
-# Chemical
+# Caelum
 Easily create your own web proxy with no experience required.
 
-## Docs
-You can find documentation for Chemical on our website https://chemicaljs.github.io.
+Caelum is a fork of chemicaljs by Nebelung
 
 ## License
-Chemical uses the AGPL 3.0 license.
+Caelum uses the MIT License.

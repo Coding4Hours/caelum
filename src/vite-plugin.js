@@ -7,13 +7,13 @@ import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { services } from "./proxys";
 const ROOT = new URL("..", import.meta.url).pathname;
-const ChemicalVitePlugin = (options) => ({
-    name: "chemical-vite-plugin",
+const CaelumVitePlugin = (options) => ({
+    name: "caelum-vite-plugin",
     configureServer(server) {
         if (options) {
             if (typeof options !== "object" || Array.isArray(options)) {
                 options = {};
-                console.error("Error: ChemicalServer options invalid.");
+                console.error("Error: CaelumServer options invalid.");
             }
         }
         else {
@@ -28,52 +28,52 @@ const ChemicalVitePlugin = (options) => ({
             options.demoMode = false;
         }
         const app = express();
-        app.get("/chemical.js", async function (req, res) {
-            let chemicalMain = await Bun.file(ROOT + "client/chemical.js").text();
+        app.get("/caelum.js", async function (req, res) {
+            let caelumMain = await Bun.file(ROOT + "client/caelum.js").text();
             if (options.default) {
                 const serviceNames = services.map((s) => s.name);
                 if (serviceNames.includes(options.default)) {
-                    chemicalMain =
-                        `const defaultService = "${options.default}";\n\n` + chemicalMain;
+                    caelumMain =
+                        `const defaultService = "${options.default}";\n\n` + caelumMain;
                 }
                 else {
-                    chemicalMain =
+                    caelumMain =
                         `const defaultService = "${serviceNames[0] || "scramjet"}";\n\n` +
-                            chemicalMain;
-                    console.error("Error: Chemical default option invalid.");
+                            caelumMain;
+                    console.error("Error: Caelum default option invalid.");
                 }
             }
             else {
-                chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
+                caelumMain = `const defaultService = "scramjet";\n\n` + caelumMain;
             }
             for (const service of services) {
-                chemicalMain =
+                caelumMain =
                     "const " +
                         service.name +
                         "Enabled = " +
                         String(options[service.name]) +
                         ";\n" +
-                        chemicalMain;
+                        caelumMain;
             }
-            chemicalMain =
-                "const demoMode = " + String(options.demoMode) + ";\n" + chemicalMain;
-            chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
+            caelumMain =
+                "const demoMode = " + String(options.demoMode) + ";\n" + caelumMain;
+            caelumMain = "(async () => {\n" + caelumMain + "\n})();";
             res.type("application/javascript");
-            return res.send(chemicalMain);
+            return res.send(caelumMain);
         });
-        app.get("/chemical.sw.js", async function (req, res) {
-            let chemicalSW = await Bun.file(ROOT + "client/chemical.sw.js").text();
+        app.get("/caelum.sw.js", async function (req, res) {
+            let caelumSW = await Bun.file(ROOT + "client/caelum.sw.js").text();
             for (const service of services) {
-                chemicalSW =
+                caelumSW =
                     "const " +
                         service.name +
                         "Enabled = " +
                         String(options[service.name]) +
                         ";\n" +
-                        chemicalSW;
+                        caelumSW;
             }
             res.type("application/javascript");
-            return res.send(chemicalSW);
+            return res.send(caelumSW);
         });
         app.use(express.static(ROOT + "client"));
         app.use("/baremux/", express.static(baremuxPath));
@@ -81,7 +81,12 @@ const ChemicalVitePlugin = (options) => ({
         app.use("/epoxy/", express.static(epoxyPath));
         for (const service of services) {
             if (options[service.name] && service.nodePath) {
-                app.use(service.staticUrl, express.static(service.nodePath));
+                const paths = Array.isArray(service.nodePath)
+                    ? service.nodePath
+                    : [service.nodePath];
+                for (const p of paths) {
+                    app.use(service.staticUrl, express.static(p));
+                }
             }
         }
         server.middlewares.use(app);
@@ -107,4 +112,4 @@ const ChemicalVitePlugin = (options) => ({
         });
     },
 });
-export { ChemicalVitePlugin };
+export { CaelumVitePlugin };
