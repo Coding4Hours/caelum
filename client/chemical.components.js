@@ -9,17 +9,18 @@ class ChemicalInput extends HTMLInputElement {
           this.dataset.serviceStore !== undefined
             ? localStorage.getItem("@chemical/service") ||
               this.dataset.service ||
-              "uv"
-            : this.dataset.service || "uv";
+              "scramjet"
+            : this.dataset.service || "scramjet";
         let autoHttps =
           this.dataset.autoHttpsStore !== undefined
             ? localStorage.getItem("@chemical/autoHttps") === "true"
             : this.dataset.autoHttps !== undefined
-            ? true
-            : false;
+              ? true
+              : false;
         let searchEngine =
           this.dataset.searchEngineStore !== undefined
-            ? localStorage.getItem("@chemical/searchEngine") || this.dataset.searchEngine
+            ? localStorage.getItem("@chemical/searchEngine") ||
+              this.dataset.searchEngine
             : this.dataset.searchEngine;
         let action = this.dataset.action;
         let target = this.dataset.target;
@@ -64,7 +65,7 @@ class ChemicalButton extends HTMLButtonElement {
         forInput.dispatchEvent(
           new KeyboardEvent("keydown", {
             key: "Enter",
-          })
+          }),
         );
       }
     });
@@ -117,7 +118,7 @@ class ChemicalLink extends HTMLAnchorElement {
   }
   async connectedCallback() {
     let href = this.dataset.href;
-    let service = this.dataset.service || "uv";
+    let service = this.dataset.service || "scramjet";
     let autoHttps = this.dataset.autoHttps !== undefined ? true : false;
     let searchEngine = this.dataset.searchEngine;
     this.dataset.chemicalLoading = "true";
@@ -129,7 +130,7 @@ class ChemicalLink extends HTMLAnchorElement {
           service,
           autoHttps,
           searchEngine,
-        })
+        }),
       );
       this.dataset.chemicalLoading = "false";
     } else {
@@ -140,7 +141,7 @@ class ChemicalLink extends HTMLAnchorElement {
             service,
             autoHttps,
             searchEngine,
-          })
+          }),
         );
         this.dataset.chemicalLoading = "false";
       });

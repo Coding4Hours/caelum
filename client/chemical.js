@@ -26,15 +26,6 @@ window.chemical = {
 
 async function encodeService(url, service) {
   switch (service) {
-    case "uv":
-      if (uvEnabled) {
-        return (
-          window.location.origin +
-          __uv$config.prefix +
-          __uv$config.encodeUrl(url)
-        );
-      }
-      break;
     case "scramjet":
       if (scramjetEnabled) {
         return window.location.origin + chemical.scramjet.encodeUrl(url);
@@ -89,11 +80,6 @@ window.chemical.decode = async function (url, config) {
   }
 
   switch (config.service) {
-    case "uv":
-      if (uvEnabled) {
-        return __uv$config.decodeUrl(url.split(__uv$config.prefix)[1]);
-      }
-      break;
     case "scramjet":
       if (scramjetEnabled) {
         return $scramjet.codec.decode(url.split($scramjet.config.prefix)[1]);
@@ -156,7 +142,7 @@ window.chemical.getStore = function (key) {
   const defaults = {
     transport: window.chemical.transport,
     wisp: window.chemical.wisp,
-    service: "uv",
+    service: "scramjet",
     autoHttps: false,
     title: document.querySelector("title[is='chemical-title']")?.innerText,
     icon: document
@@ -264,10 +250,6 @@ function setupFetch() {
 }
 
 await loadScript("/baremux/index.js");
-if (uvEnabled) {
-  await loadScript(`/${uvRandomPath}/${uvRandomPath}.bundle.js`);
-  await loadScript(`/${uvRandomPath}/${uvRandomPath}.config.js`);
-}
 if (scramjetEnabled) {
   await loadScript("/scramjet/scramjet.all.js");
   const { ScramjetController } = $scramjetLoadController();

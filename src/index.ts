@@ -18,8 +18,6 @@ import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
-import { uvPath } from "../ultraviolet/index.js";
-import { uvRandomPath } from "../ultraviolet/path.js";
 import { scramjetPath } from "@mercuryworkshop/scramjet/path";
 import { ViteDevServer } from "vite";
 
@@ -46,7 +44,7 @@ interface WispOptions {
 }
 
 interface Options {
-  uv?: boolean;
+  gv?: boolean;
   scramjet?: boolean;
   demoMode?: boolean;
   default?: string;
@@ -78,10 +76,6 @@ class ChemicalServer {
       options = {};
     }
 
-    if (options.uv === undefined) {
-      options.uv = true;
-    }
-
     if (options.scramjet === undefined) {
       options.scramjet = true;
     }
@@ -102,24 +96,22 @@ class ChemicalServer {
     this.app.get("/chemical.js", async (req: Request, res: Response) => {
       let chemicalMain = await readFileSync(
         resolve(__dirname, "../client/chemical.js"),
-        "utf8"
+        "utf8",
       );
 
       if (this.options.default) {
-        if (["uv", "scramjet"].includes(this.options.default)) {
+        if (this.options.default === "scramjet") {
           chemicalMain =
             `const defaultService = "${this.options.default}";\n\n` +
             chemicalMain;
         } else {
-          chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+          chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
           console.error("Error: Chemical default option invalid.");
         }
       } else {
-        chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+        chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
       }
 
-      chemicalMain =
-        "const uvEnabled = " + String(this.options.uv) + ";\n" + chemicalMain;
       chemicalMain =
         "const scramjetEnabled = " +
         String(this.options.scramjet) +
@@ -130,8 +122,6 @@ class ChemicalServer {
         String(this.options.demoMode) +
         ";\n" +
         chemicalMain;
-      chemicalMain =
-        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalMain;
 
       chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
 
@@ -141,18 +131,14 @@ class ChemicalServer {
     this.app.get("/chemical.sw.js", async (req: Request, res: Response) => {
       let chemicalSW = await readFileSync(
         resolve(__dirname, "../client/chemical.sw.js"),
-        "utf8"
+        "utf8",
       );
 
-      chemicalSW =
-        "const uvEnabled = " + String(this.options.uv) + ";\n" + chemicalSW;
       chemicalSW =
         "const scramjetEnabled = " +
         String(this.options.scramjet) +
         ";\n" +
         chemicalSW;
-      chemicalSW =
-        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
       res.type("application/javascript");
       return res.send(chemicalSW);
@@ -161,9 +147,6 @@ class ChemicalServer {
     this.app.use("/baremux/", express.static(baremuxPath));
     this.app.use("/libcurl/", express.static(libcurlPath));
     this.app.use("/epoxy/", express.static(epoxyPath));
-    if (this.options.uv) {
-      this.app.use(`/${uvRandomPath}/`, express.static(uvPath));
-    }
     if (this.options.scramjet) {
       this.app.use("/scramjet/", express.static(scramjetPath));
     }
@@ -201,10 +184,6 @@ const ChemicalVitePlugin = (options: Options) => ({
       options = {};
     }
 
-    if (options.uv === undefined) {
-      options.uv = true;
-    }
-
     if (options.scramjet === undefined) {
       options.scramjet = true;
     }
@@ -217,23 +196,21 @@ const ChemicalVitePlugin = (options: Options) => ({
     app.get("/chemical.js", async function (req: Request, res: Response) {
       let chemicalMain: string = await readFileSync(
         resolve(__dirname, "../client/chemical.js"),
-        "utf8"
+        "utf8",
       );
 
       if (options.default) {
-        if (["uv", "scramjet"].includes(options.default)) {
+        if (options.default === "scramjet") {
           chemicalMain =
             `const defaultService = "${options.default}";\n\n` + chemicalMain;
         } else {
-          chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+          chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
           console.error("Error: Chemical default option invalid.");
         }
       } else {
-        chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+        chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
       }
 
-      chemicalMain =
-        "const uvEnabled = " + String(options.uv) + ";\n" + chemicalMain;
       chemicalMain =
         "const scramjetEnabled = " +
         String(options.scramjet) +
@@ -241,8 +218,6 @@ const ChemicalVitePlugin = (options: Options) => ({
         chemicalMain;
       chemicalMain =
         "const demoMode = " + String(options.demoMode) + ";\n" + chemicalMain;
-      chemicalMain =
-        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalMain;
 
       chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
 
@@ -252,18 +227,14 @@ const ChemicalVitePlugin = (options: Options) => ({
     app.get("/chemical.sw.js", async function (req: Request, res: Response) {
       let chemicalSW: string = await readFileSync(
         resolve(__dirname, "../client/chemical.sw.js"),
-        "utf8"
+        "utf8",
       );
 
-      chemicalSW =
-        "const uvEnabled = " + String(options.uv) + ";\n" + chemicalSW;
       chemicalSW =
         "const scramjetEnabled = " +
         String(options.scramjet) +
         ";\n" +
         chemicalSW;
-      chemicalSW =
-        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
       res.type("application/javascript");
       return res.send(chemicalSW);
@@ -272,9 +243,6 @@ const ChemicalVitePlugin = (options: Options) => ({
     app.use("/baremux/", express.static(baremuxPath));
     app.use("/libcurl/", express.static(libcurlPath));
     app.use("/epoxy/", express.static(epoxyPath));
-    if (options.uv) {
-      app.use(`/${uvRandomPath}/`, express.static(uvPath));
-    }
     if (options.scramjet) {
       app.use("/scramjet/", express.static(scramjetPath));
     }
@@ -304,7 +272,7 @@ const ChemicalVitePlugin = (options: Options) => ({
             upgrader(req, socket, head);
           }
         }
-      }
+      },
     );
   },
 });
@@ -332,10 +300,6 @@ class ChemicalBuild {
       options.path = options.path.slice(0, -1);
     }
 
-    if (options.uv === undefined) {
-      options.uv = true;
-    }
-
     if (options.scramjet === undefined) {
       options.scramjet = true;
     }
@@ -352,75 +316,67 @@ class ChemicalBuild {
     } else {
       if (deletePath) {
         readdirSync(resolve(this.options.path || "")).forEach((file) =>
-          rmSync(resolve(this.options.path || "", file), { recursive: true })
+          rmSync(resolve(this.options.path || "", file), { recursive: true }),
         );
       }
     }
 
     let chemicalMain: string = await readFileSync(
       resolve(__dirname, "../client/chemical.js"),
-      "utf8"
+      "utf8",
     );
 
     if (this.options.default) {
-      if (["uv", "scramjet"].includes(this.options.default)) {
+      if (this.options.default === "scramjet") {
         chemicalMain =
           `const defaultService = "${this.options.default}";\n\n` +
           chemicalMain;
       } else {
-        chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+        chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
         console.error("Error: Chemical default option invalid.");
       }
     } else {
-      chemicalMain = `const defaultService = "uv";\n\n` + chemicalMain;
+      chemicalMain = `const defaultService = "scramjet";\n\n` + chemicalMain;
     }
 
-    chemicalMain =
-      "const uvEnabled = " + String(this.options.uv) + ";\n" + chemicalMain;
     chemicalMain =
       "const scramjetEnabled = " +
       String(this.options.scramjet) +
       ";\n" +
       chemicalMain;
-      chemicalMain =
-        "const demoMode = " +
+    chemicalMain =
+      "const demoMode = " +
       String(this.options.demoMode) +
       ";\n" +
       chemicalMain;
-    chemicalMain =
-      `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalMain;
 
     chemicalMain = "(async () => {\n" + chemicalMain + "\n})();";
 
     writeFileSync(
       resolve(this.options.path || "", "chemical.js"),
-      chemicalMain
+      chemicalMain,
     );
 
     let chemicalSW: string = await readFileSync(
       resolve(__dirname, "../client/chemical.sw.js"),
-      "utf8"
+      "utf8",
     );
 
-    chemicalSW =
-      "const uvEnabled = " + String(this.options.uv) + ";\n" + chemicalSW;
     chemicalSW =
       "const scramjetEnabled = " +
       String(this.options.scramjet) +
       ";\n" +
       chemicalSW;
-      chemicalSW =
-        `const uvRandomPath = "${String(uvRandomPath)}";\n` + chemicalSW;
 
     writeFileSync(
       resolve(this.options.path || "", "chemical.sw.js"),
-      chemicalSW
+      chemicalSW,
     );
 
     if (this.options.demoMode) {
       copyFileSync(
         resolve(__dirname, "client/chemical.demo.html"),
-        resolve(this.options.path || "", "chemical.demo.html")
+        resolve(this.options.path || "", "chemical.demo.html"),
       );
     }
 
@@ -436,11 +392,6 @@ class ChemicalBuild {
     cpSync(libcurlPath, resolve(this.options.path || "", "libcurl"), {
       recursive: true,
     });
-    if (this.options.uv) {
-      cpSync(uvPath, resolve(this.options.path || "", uvRandomPath), {
-        recursive: true,
-      });
-    }
   }
 }
 
